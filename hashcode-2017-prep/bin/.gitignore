@@ -1,0 +1,10 @@
+/bin
+/target
+.classpath
+.project
+.settings
+.idea
+*.iml
+testerCDouter.zip
+result.out
+
