@@ -144,24 +144,27 @@ public class Main {
 
         System.out.println("Remaining requests:" + requests.size());
 
-        while (true) {
-            Optional<Request> requestToCache = requests.stream()
-                    .filter(request -> request.endpoint.id == endpoint.id)
-                    .filter(request -> cacheServer.videos.stream().mapToInt(video -> video.id)
-                            .noneMatch(value -> value == request.video.id))
-                    .filter(request -> request.video.weight <= cacheServer.getAvailableSpace(INPUT_DATA.cacheSize))
-                    .sorted(Comparator.comparingInt(r -> r.nbRequest)).findFirst();
+        if (cacheServer.getAvailableSpace(INPUT_DATA.cacheSize) != 0) {
+            while (true) {
+                Optional<Request> requestToCache = requests.stream()
+                        .filter(request -> request.endpoint.id == endpoint.id)
+                        .filter(request -> cacheServer.videos.stream().mapToInt(video -> video.id)
+                                .noneMatch(value -> value == request.video.id))
+                        .filter(request -> request.video.weight <= cacheServer.getAvailableSpace(INPUT_DATA.cacheSize))
+                        .sorted(Comparator.comparingInt(r -> r.nbRequest)).findFirst();
 
-            if (!requestToCache.isPresent()) {
-                break;
+                if (!requestToCache.isPresent()) {
+                    break;
+                }
+                // System.out.println("Request:" + requestToCache.get().id);
+
+                // Add video in cacheServer
+                cacheServer.videos.add(requestToCache.get().video);
+
+                // Request has been caches => we remove it
+                requests.remove(requestToCache.get());
             }
-            // System.out.println("Request:" + requestToCache.get().id);
-
-            // Add video in cacheServer
-            cacheServer.videos.add(requestToCache.get().video);
-
-            // Request has been caches => we remove it
-            requests.remove(requestToCache.get());
         }
+
     }
 }
