@@ -59,8 +59,8 @@ public class Main {
 
         final List<Cache> caches = IntStream.range(0, nbCaches).mapToObj(Cache::new).collect(Collectors.toList());
         final List<Video> videos = IntStream.range(0, nbVideos)
-                .mapToObj((i) -> new Video().setId(i).setWeight(in.nextInt()))
-                .collect(Collectors.toList());
+            .mapToObj((i) -> new Video().setId(i).setWeight(in.nextInt()))
+            .collect(Collectors.toList());
 
         final List<Endpoint> endpoints = new ArrayList<>();
         for (int endpointId = 0; endpointId < nbEndpoints; endpointId++) {
@@ -68,9 +68,9 @@ public class Main {
             final int numberConnectedCaches = in.nextInt();
 
             final Endpoint endpoint = new Endpoint()
-                    .setId(endpointId)
-                    .setDatacenterLatency(datacenterLatency)
-                    .setNumberConnectedCaches(numberConnectedCaches);
+                .setId(endpointId)
+                .setDatacenterLatency(datacenterLatency)
+                .setNumberConnectedCaches(numberConnectedCaches);
 
             for (int i = 0; i < numberConnectedCaches; i++) {
                 final int cacheId = in.nextInt();
@@ -78,10 +78,10 @@ public class Main {
                 System.out.println("cacheId: " + cacheId);
                 System.out.println("cacheLatency: " + cacheLatency);
                 caches.stream()
-                        .filter((c) -> c.id == cacheId)
-                        .findFirst()
-                        .orElseThrow(() -> new RuntimeException("Cache with id " + cacheId + " not found"))
-                        .addEnPoint(endpoint, cacheLatency);
+                    .filter((c) -> c.id == cacheId)
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("Cache with id " + cacheId + " not found"))
+                    .addEnPoint(endpoint, cacheLatency);
             }
 
             endpoints.add(endpoint);
@@ -96,29 +96,29 @@ public class Main {
             int nbRequest = in.nextInt();
 
             final Video video = videos.stream()
-                    .filter((v) -> v.id == videoId)
-                    .findFirst()
-                    .orElseThrow(() -> new RuntimeException("Video with id " + videoId + " not found"));
+                .filter((v) -> v.id == videoId)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Video with id " + videoId + " not found"));
 
             final Endpoint endpoint = endpoints.stream()
-                    .filter((e) -> e.id == endpointId)
-                    .findFirst()
-                    .orElseThrow(() -> new RuntimeException("Endpoint with id " + endpointId + " not found"));
+                .filter((e) -> e.id == endpointId)
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Endpoint with id " + endpointId + " not found"));
             final Request request = new Request(requestId, video, endpoint, nbRequest);
             requests.add(request);
 
         }
 
         INPUT_DATA = new InputData(
-                nbVideos,
-                nbEndpoints,
-                nbRequestDescriptions,
-                nbCaches,
-                cacheSize,
-                videos,
-                caches,
-                Collections.unmodifiableList(endpoints),
-                Collections.unmodifiableList(requests));
+            nbVideos,
+            nbEndpoints,
+            nbRequestDescriptions,
+            nbCaches,
+            cacheSize,
+            videos,
+            caches,
+            Collections.unmodifiableList(endpoints),
+            Collections.unmodifiableList(requests));
         System.out.println("initData END");
     }
 
@@ -127,7 +127,7 @@ public class Main {
 
         List<CacheEnpointCouple> cacheEnpointCouples = new ArrayList<>();
         caches.forEach(cache -> cache.endpoints.forEach((endpoint, cacheEnpointLatency) -> cacheEnpointCouples
-                .add(new CacheEnpointCouple(cache, endpoint, cacheEnpointLatency))));
+            .add(new CacheEnpointCouple(cache, endpoint, cacheEnpointLatency))));
 
         cacheEnpointCouples.sort(Comparator.comparingInt(c -> -c.latencyGain));
 
@@ -144,17 +144,17 @@ public class Main {
 
         System.out.println("Remaining requests:" + requests.size());
 
-        final List<Request> filteredRequests = requests.stream()
-                .filter(request -> request.endpoint.id == endpoint.id)
-                .filter(request -> cacheServer.videos.stream().mapToInt(video -> video.id)
-                        .noneMatch(value -> value == request.video.id))
-                .collect(Collectors.toList());
         if (cacheServer.getAvailableSpace(INPUT_DATA.cacheSize) != 0) {
+            final List<Request> filteredRequests = requests.stream()
+                .filter(request -> request.endpoint.id == endpoint.id)
+                .collect(Collectors.toList());
             while (true) {
                 Optional<Request> requestToCache = filteredRequests.stream()
-                        .filter(request -> request.video.weight <= cacheServer.getAvailableSpace(INPUT_DATA.cacheSize))
-                        .sorted(Comparator.comparingInt(r -> r.nbRequest))
-                        .findFirst();
+                    .filter(request -> cacheServer.videos.stream().mapToInt(video -> video.id)
+                        .noneMatch(value -> value == request.video.id))
+                    .filter(request -> request.video.weight <= cacheServer.getAvailableSpace(INPUT_DATA.cacheSize))
+                    .sorted(Comparator.comparingInt(r -> r.nbRequest))
+                    .findFirst();
 
                 if (!requestToCache.isPresent()) {
                     break;
