@@ -144,14 +144,17 @@ public class Main {
 
         System.out.println("Remaining requests:" + requests.size());
 
+        final List<Request> filteredRequests = requests.stream()
+                .filter(request -> request.endpoint.id == endpoint.id)
+                .filter(request -> cacheServer.videos.stream().mapToInt(video -> video.id)
+                        .noneMatch(value -> value == request.video.id))
+                .collect(Collectors.toList());
         if (cacheServer.getAvailableSpace(INPUT_DATA.cacheSize) != 0) {
             while (true) {
-                Optional<Request> requestToCache = requests.stream()
-                        .filter(request -> request.endpoint.id == endpoint.id)
-                        .filter(request -> cacheServer.videos.stream().mapToInt(video -> video.id)
-                                .noneMatch(value -> value == request.video.id))
+                Optional<Request> requestToCache = filteredRequests.stream()
                         .filter(request -> request.video.weight <= cacheServer.getAvailableSpace(INPUT_DATA.cacheSize))
-                        .sorted(Comparator.comparingInt(r -> r.nbRequest)).findFirst();
+                        .sorted(Comparator.comparingInt(r -> r.nbRequest))
+                        .findFirst();
 
                 if (!requestToCache.isPresent()) {
                     break;
@@ -165,6 +168,5 @@ public class Main {
                 requests.remove(requestToCache.get());
             }
         }
-
     }
 }
