@@ -21,4 +21,8 @@ public class Cache {
         endpoints.put(endpoint, latency);
     }
 
+    public int getAvailableSpace(int cacheSize) {
+        return cacheSize - videos.stream().mapToInt(video -> video.weight).sum();
+    }
+
 }

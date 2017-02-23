@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Result {
-    List<Cache> cacheServers = new ArrayList<>();
+    public List<Cache> cacheServers = new ArrayList<>();
     public Result(){
         Cache cache1 = new Cache(0);
         Video video1 = new Video();

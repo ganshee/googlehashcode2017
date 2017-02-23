@@ -1,5 +1,6 @@
 package fr.tcd.result;
 
+import fr.tcd.Cache;
 import org.apache.commons.io.FileUtils;
 
 import java.io.File;
@@ -9,16 +10,12 @@ import java.util.Collection;
 import java.util.List;
 
 public class ResultWriter {
-    public static void main(String[] args) throws IOException {
-        ResultWriter.write("test", new Result());
-    }
-
-    public static void write(String dataset, Result result) throws IOException {
+    public static void write(String dataset, List<Cache> cacheServers) throws IOException {
         Collection<String> lines = new ArrayList<>();
 
-        lines.add(String.valueOf(result.cacheServers.size()));
+        lines.add(String.valueOf(cacheServers.size()));
 
-        result.cacheServers.forEach(cache -> {
+        cacheServers.forEach(cache -> {
             List<String> items = new ArrayList<>();
             items.add(String.valueOf(cache.id));
 

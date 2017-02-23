@@ -1,9 +1,14 @@
 package fr.tcd;
 
+import fr.tcd.result.ResultWriter;
+
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.Scanner;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -11,8 +16,9 @@ import java.util.stream.IntStream;
 public class Main {
 
     public static InputData INPUT_DATA;
+    //public static Result RESULT;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         try {
             initData("kittens.in");
             compute();
@@ -22,22 +28,21 @@ public class Main {
         }
     }
 
-    protected static void generateResult() {
-        /*
-         * StringBuilder result = CONFIG.getResultFile(); boolean firstDrone = true; for (int[] drone :
-         * RESULT.getDrones()) { if (!firstDrone) { result.append("\n"); } firstDrone = false; boolean firstDeplacement
-         * = true; for (int deplacement : drone) { if (firstDeplacement) { result.append(deplacement); } else {
-         * result.append(" " + deplacement); } firstDeplacement = false; } result.append(" " + 0); } try {
-         * Files.write(result, new File("result.txt"), StandardCharsets.UTF_8); } catch (IOException e) { // TODO
-         * Auto-generated catch block e.printStackTrace(); } System.out.println(result);
-         */
+    protected static void generateResult() throws IOException {
+        System.out.println("generateResult");
+
+        ResultWriter.write("kittens.in", INPUT_DATA.caches);
     }
 
     private static void compute() {
-        // DO THE THING
+        System.out.println("Compute");
+
+        computeByEnpointCacheCouples();
     }
 
     protected static void initData(final String filename) throws FileNotFoundException {
+        System.out.println("initData");
+
         final Scanner in = new Scanner(ClassLoader.getSystemResourceAsStream(filename));
         final int nbVideos = in.nextInt();
         final int nbEndpoints = in.nextInt();
@@ -104,6 +109,42 @@ public class Main {
                 Collections.unmodifiableList(endpoints),
                 Collections.unmodifiableList(requests)
         );
-        in.nextLine();
+        System.out.println("initData END");
+    }
+
+    public static void computeByEnpointCacheCouples() {
+        List<Cache> caches = INPUT_DATA.caches;
+
+        List<CacheEnpointCouple> cacheEnpointCouples = new ArrayList<>();
+        caches.forEach(cache -> cache.endpoints.forEach((endpoint, cacheEnpointLatency) -> cacheEnpointCouples.add(new CacheEnpointCouple(cache, endpoint, cacheEnpointLatency))));
+
+        cacheEnpointCouples.sort(Comparator.comparingInt(c -> -c.latencyGain));
+
+        cacheEnpointCouples.forEach(cacheEnpointCouple -> storeVideosInCache(cacheEnpointCouple));
+    }
+
+    private static void storeVideosInCache(CacheEnpointCouple cacheEnpointCouple) {
+        List<Request> requests = INPUT_DATA.requests;
+        Cache cacheServer = cacheEnpointCouple.cache;
+
+        System.out.println("Cache:" + cacheEnpointCouple.cache.id);
+        System.out.println("Endpoint:" + cacheEnpointCouple.endpoint.id);
+
+        while (true) {
+            Optional<Request> requestToCache = requests.stream()
+                    .filter(request -> request.video.weight <= cacheServer.getAvailableSpace(INPUT_DATA.cacheSize))
+                    .sorted(Comparator.comparingInt(r -> r.nbRequest)).findFirst();
+
+            if (!requestToCache.isPresent()) {
+                break;
+            }
+            System.out.println("Request:" + requestToCache.get().id);
+
+            // Add video in cacheServer
+            cacheServer.videos.add(requestToCache.get().video);
+
+            // Request has been caches => we remove it
+            requests.remove(requestToCache);
+        }
     }
 }
