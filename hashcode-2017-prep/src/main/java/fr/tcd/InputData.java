@@ -23,7 +23,7 @@ public class InputData {
 
     private List<Request> requests;
 
-    public InputData(final int nbVideos, final int nbEndpoints, final int nbRequestDescriptions, final int nbCaches, final int cacheSize, List<Video> videos, List<Cache> caches) {
+    public InputData(final int nbVideos, final int nbEndpoints, final int nbRequestDescriptions, final int nbCaches, final int cacheSize, List<Video> videos, List<Cache> caches, List<Endpoint> endpoints) {
         this.nbVideos = nbVideos;
         this.nbEndpoints = nbEndpoints;
         this.nbRequestDescriptions = nbRequestDescriptions;

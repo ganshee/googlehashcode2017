@@ -67,6 +67,9 @@ public class Main {
                     .addEnPoint(endpoint, cacheLatency);
             endpoints.add(endpoint);
         }
+
+//        for (int request; )
+
         INPUT_DATA = new InputData(
                 nbVideos,
                 nbEndpoints,
@@ -74,7 +77,8 @@ public class Main {
                 nbCaches,
                 cacheSize,
                 videos,
-                caches
+                caches,
+                endpoints
         );
         in.nextLine();
     }
