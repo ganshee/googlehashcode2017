@@ -25,7 +25,7 @@ public class MainTest {
 
     @Test
     public void video_worth_spreading() throws IOException {
-        Main.main(Arrays.asList("video_worth_spreading.in").toArray(new String[0]));
+        Main.main(Arrays.asList("videos_worth_spreading.in").toArray(new String[0]));
     }
 
     @Test
