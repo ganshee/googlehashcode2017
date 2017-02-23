@@ -59,4 +59,19 @@ public class InputData {
     public int getCacheSize() {
         return cacheSize;
     }
+
+    @Override
+    public String toString() {
+        return "InputData{" +
+                "nbVideos=" + nbVideos +
+                ", nbEndpoints=" + nbEndpoints +
+                ", nbRequestDescriptions=" + nbRequestDescriptions +
+                ", nbCaches=" + nbCaches +
+                ", cacheSize=" + cacheSize +
+                ", videos=" + videos +
+                ", endpoints=" + endpoints +
+                ", requests=" + requests +
+                ", caches=" + caches +
+                '}';
+    }
 }

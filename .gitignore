@@ -6,5 +6,6 @@ target
 .project
 .class
 .settings
-*.out
-*.zip
+.in.out
+.zip
+*.in.out
