@@ -6,7 +6,9 @@ public class Endpoint {
 
     public int id;
 
-    public int latency;
+    public int datacenterLatency;
+
+    public int numberConnectedCaches;
 
     /**
      * Sets the id
@@ -20,13 +22,13 @@ public class Endpoint {
     }
 
     /**
-     * Sets the latency
+     * Sets the datacenterLatency
      *
-     * @param latency the latency to set
+     * @param datacenterLatency the datacenterLatency to set
      * @return this
      */
-    public Endpoint setLatency(int latency) {
-        this.latency = latency;
+    public Endpoint setDatacenterLatency(int datacenterLatency) {
+        this.datacenterLatency = datacenterLatency;
         return this;
     }
 
@@ -36,11 +38,16 @@ public class Endpoint {
         if (o == null || getClass() != o.getClass()) return false;
         Endpoint endpoint = (Endpoint) o;
         return id == endpoint.id &&
-                latency == endpoint.latency;
+                datacenterLatency == endpoint.datacenterLatency;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id, latency);
+        return Objects.hash(id, datacenterLatency);
+    }
+
+    public Endpoint setNumberConnectedCaches(int numberConnectedCaches) {
+        this.numberConnectedCaches = numberConnectedCaches;
+        return this;
     }
 }
