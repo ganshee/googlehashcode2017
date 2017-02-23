@@ -20,7 +20,7 @@ public class Main {
 
     public static void main(String[] args) throws IOException {
         try {
-            initData("kittens.in");
+            initData("trending_today.in");
             compute();
             generateResult();
         } catch (FileNotFoundException e) {
@@ -31,7 +31,7 @@ public class Main {
     protected static void generateResult() throws IOException {
         System.out.println("generateResult");
 
-        ResultWriter.write("kittens.in", INPUT_DATA.caches);
+        ResultWriter.write("trending_today.in", INPUT_DATA.caches);
     }
 
     private static void compute() {
@@ -68,6 +68,8 @@ public class Main {
             for (int i = 0; i < numberConnectedCaches; i++) {
                 final int cacheId = in.nextInt();
                 final int cacheLatency = in.nextInt();
+                System.out.println("cacheId: " + cacheId);
+                System.out.println("cacheLatency: " + cacheLatency);
                 caches.stream()
                         .filter((c) -> c.id == cacheId)
                         .findFirst()
@@ -79,6 +81,8 @@ public class Main {
 
         final List<Request> requests = new ArrayList<>();
         for (int requestId = 0; requestId < nbRequestDescriptions; requestId++) {
+            System.out.println("requestId: " + requestId);
+            System.out.println("nbRequestDescriptions: " + nbRequestDescriptions);
 
             int videoId = in.nextInt();
             int endpointId = in.nextInt();
@@ -126,25 +130,30 @@ public class Main {
     private static void storeVideosInCache(CacheEnpointCouple cacheEnpointCouple) {
         List<Request> requests = INPUT_DATA.requests;
         Cache cacheServer = cacheEnpointCouple.cache;
+        Endpoint endpoint = cacheEnpointCouple.endpoint;
 
         System.out.println("Cache:" + cacheEnpointCouple.cache.id);
-        System.out.println("Endpoint:" + cacheEnpointCouple.endpoint.id);
+        System.out.println("Endpoint:" + endpoint.id);
+
+        System.out.println("Remaining requests:" + requests.size());
 
         while (true) {
             Optional<Request> requestToCache = requests.stream()
+                    .filter(request -> request.endpoint.id == endpoint.id)
+                    .filter(request -> cacheServer.videos.stream().mapToInt(video -> video.id).noneMatch(value -> value == request.video.id))
                     .filter(request -> request.video.weight <= cacheServer.getAvailableSpace(INPUT_DATA.cacheSize))
                     .sorted(Comparator.comparingInt(r -> r.nbRequest)).findFirst();
 
             if (!requestToCache.isPresent()) {
                 break;
             }
-            System.out.println("Request:" + requestToCache.get().id);
+            //System.out.println("Request:" + requestToCache.get().id);
 
             // Add video in cacheServer
             cacheServer.videos.add(requestToCache.get().video);
 
             // Request has been caches => we remove it
-            requests.remove(requestToCache);
+            requests.remove(requestToCache.get());
         }
     }
 }
