@@ -54,18 +54,22 @@ public class Main {
         for (int endpointId = 0; endpointId < nbEndpoints; endpointId++) {
             final int datacenterLatency = in.nextInt();
             final int numberConnectedCaches = in.nextInt();
+
             final Endpoint endpoint = new Endpoint()
                     .setId(endpointId)
                     .setDatacenterLatency(datacenterLatency)
                     .setNumberConnectedCaches(numberConnectedCaches);
-            final int cacheId = in.nextInt();
-            final int cacheLatency = in.nextInt();
-            caches.stream()
-                    .filter((c) -> c.id == cacheId)
-                    .findFirst()
-                    .orElseThrow(() -> new RuntimeException("Cache with id " + cacheId + " not found"))
-                    .addEnPoint(endpoint, cacheLatency);
-            endpoints.add(endpoint);
+
+            for (int i = 0; i < numberConnectedCaches; i++) {
+                final int cacheId = in.nextInt();
+                final int cacheLatency = in.nextInt();
+                caches.stream()
+                        .filter((c) -> c.id == cacheId)
+                        .findFirst()
+                        .orElseThrow(() -> new RuntimeException("Cache with id " + cacheId + " not found"))
+                        .addEnPoint(endpoint, cacheLatency);
+                endpoints.add(endpoint);
+            }
         }
 
         final List<Request> requests = new ArrayList<>();
