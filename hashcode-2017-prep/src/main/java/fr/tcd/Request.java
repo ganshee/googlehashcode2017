@@ -1,16 +1,26 @@
 package fr.tcd;
 
 public class Request {
+
     public int id;
+
     public Video video;
+
     public int nbRequest;
+
     public Endpoint endpoint;
+
+    public Request(int id, Video video, Endpoint endpoint, int nbRequest) {
+        this.id = id;
+        this.video = video;
+        this.endpoint = endpoint;
+        this.nbRequest = nbRequest;
+    }
 
     /**
      * Sets the video
-     * 
-     * @param video the video to set
      *
+     * @param video the video to set
      * @return this
      */
     public Request setVideo(Video video) {
@@ -20,9 +30,8 @@ public class Request {
 
     /**
      * Sets the nbRequest
-     * 
-     * @param nbRequest the nbRequest to set
      *
+     * @param nbRequest the nbRequest to set
      * @return this
      */
     public Request setNbRequest(int nbRequest) {
@@ -32,16 +41,13 @@ public class Request {
 
     /**
      * Sets the endpoint
-     * 
-     * @param endpoint the endpoint to set
      *
+     * @param endpoint the endpoint to set
      * @return this
      */
     public Request setEndpoint(Endpoint endpoint) {
         this.endpoint = endpoint;
         return this;
     }
-
-
 
 }

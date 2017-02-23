@@ -1,6 +1,5 @@
 package fr.tcd;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -18,18 +17,25 @@ public class InputData {
 
     public final int cacheSize;
 
-    public List<Video> videos = new ArrayList<>();
+    public final List<Video> videos;
 
-    public List<Endpoint> endpoints = new ArrayList<>();
+    public final List<Endpoint> endpoints;
 
-    public List<Request> requests = new ArrayList<>();
+//    public final List<Request> requests;
 
-    public InputData(final int nbVideos, final int nbEndpoints, final int nbRequestDescriptions, final int nbCaches, final int cacheSize, List<Video> videos, List<Cache> caches, List<Endpoint> endpoints) {
+    private final List<Cache> caches;
+
+    public InputData(final int nbVideos, final int nbEndpoints, final int nbRequestDescriptions,
+                     final int nbCaches, final int cacheSize,
+                     List<Video> videos, List<Cache> caches, List<Endpoint> endpoints, List<Request> requests) {
         this.nbVideos = nbVideos;
         this.nbEndpoints = nbEndpoints;
         this.nbRequestDescriptions = nbRequestDescriptions;
         this.nbCaches = nbCaches;
         this.cacheSize = cacheSize;
+        this.videos = videos;
+        this.caches = caches;
+        this.endpoints = endpoints;
     }
 
     public int getNbVideos() {

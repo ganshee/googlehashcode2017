@@ -2,6 +2,7 @@ package fr.tcd;
 
 import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Scanner;
 import java.util.stream.Collectors;
@@ -50,7 +51,6 @@ public class Main {
                 .collect(Collectors.toList());
 
         final List<Endpoint> endpoints = new ArrayList<>();
-
         for (int endpointId = 0; endpointId < nbEndpoints; endpointId++) {
             final int datacenterLatency = in.nextInt();
             final int numberConnectedCaches = in.nextInt();
@@ -61,14 +61,33 @@ public class Main {
             final int cacheId = in.nextInt();
             final int cacheLatency = in.nextInt();
             caches.stream()
-                    .filter((c) -> c.getId() == cacheId)
+                    .filter((c) -> c.id == cacheId)
                     .findFirst()
                     .orElseThrow(() -> new RuntimeException("Cache with id " + cacheId + " not found"))
                     .addEnPoint(endpoint, cacheLatency);
             endpoints.add(endpoint);
         }
 
-//        for (int request; )
+        final List<Request> requests = new ArrayList<>();
+        for (int requestId = 0; requestId < nbRequestDescriptions; requestId++) {
+
+            int videoId = in.nextInt();
+            int endpointId = in.nextInt();
+            int nbRequest = in.nextInt();
+
+            final Video video = videos.stream()
+                    .filter((v) -> v.id == videoId)
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("Video with id " + videoId + " not found"));
+
+            final Endpoint endpoint = endpoints.stream()
+                    .filter((e) -> e.id == endpointId)
+                    .findFirst()
+                    .orElseThrow(() -> new RuntimeException("Endpoint with id " + videoId + " not found"));
+            final Request request = new Request(requestId, video, endpoint, nbRequest);
+            requests.add(request);
+
+        }
 
         INPUT_DATA = new InputData(
                 nbVideos,
@@ -78,7 +97,8 @@ public class Main {
                 cacheSize,
                 videos,
                 caches,
-                endpoints
+                Collections.unmodifiableList(endpoints),
+                Collections.unmodifiableList(requests)
         );
         in.nextLine();
     }
