@@ -16,7 +16,6 @@ import java.util.stream.IntStream;
 public class Main {
 
     public static InputData INPUT_DATA;
-    // public static Result RESULT;
 
     public static void main(String[] args) throws IOException {
         try {
@@ -90,6 +89,7 @@ public class Main {
 
         final List<Request> requests = new ArrayList<>();
         for (int requestId = 0; requestId < nbRequestDescriptions; requestId++) {
+            System.out.println("requestId: " + requestId + "/" + nbRequestDescriptions);
 
             int videoId = in.nextInt();
             int endpointId = in.nextInt();
@@ -131,7 +131,7 @@ public class Main {
 
         cacheEnpointCouples.sort(Comparator.comparingInt(c -> -c.latencyGain));
 
-        cacheEnpointCouples.forEach(cacheEnpointCouple -> storeVideosInCache(cacheEnpointCouple));
+        cacheEnpointCouples.forEach(Main::storeVideosInCache);
     }
 
     private static void storeVideosInCache(CacheEnpointCouple cacheEnpointCouple) {
