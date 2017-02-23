@@ -21,7 +21,7 @@ public class InputData {
 
     public final List<Endpoint> endpoints;
 
-//    public final List<Request> requests;
+    public final List<Request> requests;
 
     private final List<Cache> caches;
 
@@ -36,6 +36,7 @@ public class InputData {
         this.videos = videos;
         this.caches = caches;
         this.endpoints = endpoints;
+        this.requests = requests;
     }
 
     public int getNbVideos() {
