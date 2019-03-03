@@ -22,16 +22,9 @@ public class DoTheThingService {
 	public static String updatePhotoAsUnused = "MATCH (p:Photo{photoId:MY_ID})\n" + "SET p.used = false \n"
 			+ "RETURN p.photoId as pId";
 
+	@Deprecated
 	public static String selectPhotosHorizWithMostTags = "MATCH (p1:Photo{used:false,photoOrientation:'H'})-[:HAS_TAG]->(t:Tag)<-[:HAS_TAG]-(p2:Photo{used:false,photoOrientation:'H'})\n"
 			+ "WITH p1.photoId as p1Id, p2.photoId as p2Id, count(distinct t) as numTags\n"
-			+ "RETURN p1Id, p2Id, numTags ORDER BY numTags DESC LIMIT 1";
-
-	public static String selectPhotosHorizWithMostTagsFromID = "MATCH (p1:Photo{used:true,photoOrientation:'H',photoId:MY_ID})-[:HAS_TAG]->(t:Tag)<-[:HAS_TAG]-(p2:Photo{used:false,photoOrientation:'H'})\n"
-			+ "WITH p2.photoId as p2Id, count(distinct t) as numTags\n"
-			+ "RETURN p2Id, numTags ORDER BY numTags DESC LIMIT 1";
-
-	public static String selectPhotosVertiWithMostTags = "MATCH (p1:Photo{used:true,photoOrientation:'V',photoId:MY_ID})-[:HAS_TAG]->(t1:Tag)<-[:HAS_TAG]-(p2:Photo{used:false,photoOrientation:'V'})-[:HAS_TAG]->(t2:Tag)<-[:HAS_TAG]-(p3:Photo{used:false,photoOrientation:'V'})\n"
-			+ "WITH p1.photoId as p1Id, p2.photoId as p2Id, count(t) as numTags\n"
 			+ "RETURN p1Id, p2Id, numTags ORDER BY numTags DESC LIMIT 1";
 
 	public static String selectPhotosVertiWithMostTagsFromID = "MATCH (p1:Photo{used:true,photoOrientation:'V',photoId:MY_ID})-[:HAS_TAG]->(t:Tag)<-[:HAS_TAG]-(p2:Photo{used:false,photoOrientation:'V'})\n"
@@ -61,30 +54,23 @@ public class DoTheThingService {
 		}
 
 		while (stillDoingIt) {
-			String query = StringUtils.replaceOnce(DoTheThingService.selectPhotosHorizWithMostTagsFromID, "MY_ID",
-					"" + firstPhotoId);
-			try (Transaction tx = graphDb.beginTx(); Result result = graphDb.execute(query)) {
-				if (!result.hasNext()) {
-					stillDoingIt = false;
-				}
-				while (result.hasNext()) {
-					Map<String, Object> row = result.next();
-					Integer secondPhotoId = (Integer) row.get("p2Id");
-
+			Integer secondPhotoId = dataAccesService.getNextHorizontalPhotoId(graphDb, firstPhotoId);
+			if (secondPhotoId == null) {
+				stillDoingIt = false;
+			} else {
+				try (Transaction tx = graphDb.beginTx()) {
 					results.add("" + secondPhotoId);
 					Label photoLabel = Label.label("Photo");
 					Node secondPhotoNode = graphDb.findNode(photoLabel, "photoId", secondPhotoId);
 					secondPhotoNode.setProperty("used", true);
 					firstPhotoId = secondPhotoId;
+					tx.success();
 				}
-				tx.success();
-
 			}
 		}
 		System.err.println("end doTheThingWithHorizontals at " + Instant.now().toString());
 		return results;
 	}
-
 
 	private List<String> doTheThingWithVerticals(GraphDatabaseService graphDb, DataAccesService dataAccesService) {
 		System.err.println("start doTheThingWithVerticals at " + Instant.now().toString());

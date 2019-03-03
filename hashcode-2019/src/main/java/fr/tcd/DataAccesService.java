@@ -3,6 +3,7 @@ package fr.tcd;
 import java.time.Instant;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -24,6 +25,12 @@ public class DataAccesService {
 			+ "WITH p LIMIT 2\n"
 			+ "SET p.used = true\n"
 			+ "RETURN p.photoId as result";
+	
+
+	public static String selectPhotosHorizWithMostTagsFromID = "MATCH (p1:Photo{used:true,photoOrientation:'H',photoId:MY_ID})-[:HAS_TAG]->(t:Tag)<-[:HAS_TAG]-(p2:Photo{used:false,photoOrientation:'H'})\n"
+			+ "WITH p2 as p2, count(distinct t) as numTags LIMIT 1\n"
+			+ "SET p2.used = true \n"
+			+ "RETURN p2.photoId as p2Id, numTags ORDER BY numTags DESC LIMIT 1";
 	
 	public Integer getHorizontalPhotoId(GraphDatabaseService graphDb) {
 		System.err.println("start getHorizontalPhotoId at " + Instant.now().toString());
@@ -68,5 +75,19 @@ public class DataAccesService {
 			return new MutablePair<Integer, Integer>(id1, id2);
 		}
 		return null;
+	}
+	
+	public Integer getNextHorizontalPhotoId(GraphDatabaseService graphDb, Integer photoID) {
+		Integer nextPhotoId = null; 
+		String query = StringUtils.replaceOnce(DataAccesService.selectPhotosHorizWithMostTagsFromID, "MY_ID",
+				"" + photoID);
+		try (Transaction tx = graphDb.beginTx(); Result result = graphDb.execute(query)) {
+			if (result.hasNext()) {
+				Map<String, Object> row = result.next();
+				nextPhotoId = (Integer) row.get("p2Id");
+			}
+			tx.success();
+		}
+		return nextPhotoId;
 	}
 }
