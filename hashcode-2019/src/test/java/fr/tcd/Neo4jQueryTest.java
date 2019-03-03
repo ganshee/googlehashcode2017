@@ -42,6 +42,31 @@ public class Neo4jQueryTest {
 		}
 		graphDb.shutdown();
 	}
+	
+
+	@Test
+	public void complexeTest() {
+		GraphDatabaseService graphDb = new GraphDatabaseFactory()
+				.newEmbeddedDatabase(new File("/home/gafou/projets/perso/data/a_exemple"));
+		registerShutdownHook(graphDb);
+		System.out.println("update init");
+		executeQuery(graphDb, DataInitService.updateToInitial);
+		System.out.println("countPhotosHoriz");
+		executeQuery(graphDb, DataAccesService.countPhotosHoriz);
+		System.out.println("selectOnePhotosHoriz");
+		executeQuery(graphDb, DataAccesService.selectOnePhotosHoriz);
+		System.out.println("select used photo");
+		executeQuery(graphDb, "MATCH (p:Photo{photoId:0, used:true}) RETURN p.photoId");
+		System.out.println("select next photo");
+		executeQuery(graphDb, "MATCH (p1:Photo{used:true,photoOrientation:'H',photoId:0})-[:HAS_TAG]->(t:Tag)<-[:HAS_TAG]-(p2:Photo{used:false,photoOrientation:'H'})\n" + 
+				"WITH p2.photoId as p2Id, count(distinct t) as numTags\n" + 
+				"RETURN p2Id, numTags ORDER BY numTags DESC LIMIT 1");
+		System.out.println("countPhotosHoriz");
+		executeQuery(graphDb, DataAccesService.countPhotosHoriz);
+		System.out.println("update init");
+		executeQuery(graphDb, DataInitService.updateToInitial);
+		
+	}
 
 	@Test
 	public void queryTest2() {
@@ -83,6 +108,29 @@ public class Neo4jQueryTest {
 		graphDb.shutdown();
 	}
 
+	private static void executeQuery(final GraphDatabaseService graphDb, String query) {
+		try (Transaction tx = graphDb.beginTx(); Result result = graphDb.execute(query)) {
+			String rows = "Start result\n";
+			while (result.hasNext()) {
+				Map<String, Object> row = result.next();
+				for (Entry<String, Object> column : row.entrySet()) {
+					if ("photos".equals(column.getKey())) {
+						ArrayList<NodeProxy> photos = (ArrayList) column.getValue();
+						for (NodeProxy photo : photos) {
+							rows += "photoId: " + photo.getProperty("photoId") + "; ";
+							rows += "photoOrientation: " + photo.getProperty("photoOrientation") + "; ";
+						}
+					} else {
+						rows += column.getKey() + ": " + column.getValue() + "; ";
+					}
+				}
+				rows += "\n";
+			}
+			System.out.println(rows);
+			tx.success();
+		}
+	}
+	
 	private static void registerShutdownHook(final GraphDatabaseService graphDb) {
 		// Registers a shutdown hook for the Neo4j instance so that it
 		// shuts down nicely when the VM exits (even if you "Ctrl-C" the

@@ -15,7 +15,7 @@ import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 
-public class DataService {
+public class DataInitService {
 	
 	public static String updateToInitial = "MATCH (p:Photo{used:true})\n" + "WITH p\n" + "SET p.used = false \n"
 			+ "RETURN 1";
