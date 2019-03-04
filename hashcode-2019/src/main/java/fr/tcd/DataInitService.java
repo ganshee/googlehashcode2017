@@ -72,7 +72,7 @@ public class DataInitService {
 
 		try (Transaction tx = graphDb.beginTx()) {
 			RelationshipType hasTag = RelationshipType.withName("HAS_TAG");
-			RelationshipType hasPhoto = RelationshipType.withName("HAS_PHOTO");
+			//RelationshipType hasPhoto = RelationshipType.withName("HAS_PHOTO");
 			Label photoLabel = Label.label("Photo");
 			Label tagLabel = Label.label("Tag");
 
@@ -99,7 +99,7 @@ public class DataInitService {
 					}
 					logDebug("link tag to photo: %s %d \n", tagname, photo.photoId);
 					photoNode.createRelationshipTo(tagNode, hasTag);
-					tagNode.createRelationshipTo(photoNode, hasPhoto);
+					//tagNode.createRelationshipTo(photoNode, hasPhoto);
 
 				}
 			}

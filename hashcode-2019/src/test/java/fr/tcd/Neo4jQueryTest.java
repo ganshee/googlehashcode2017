@@ -19,7 +19,7 @@ public class Neo4jQueryTest {
 		GraphDatabaseService graphDb = new GraphDatabaseFactory()
 				.newEmbeddedDatabase(new File("/home/gafou/projets/perso/data/a_exemple"));
 		registerShutdownHook(graphDb);
-		String query = DoTheThingService.selectPhotosHorizWithMostTags;
+		String query = DataAccesService.selectPhotosHorizWithMostTagsFromID;
 		try (Transaction tx = graphDb.beginTx(); Result result = graphDb.execute(query)) {
 			String rows = "Start result\n";
 			while (result.hasNext()) {

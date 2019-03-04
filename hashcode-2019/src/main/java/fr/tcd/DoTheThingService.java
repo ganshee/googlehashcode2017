@@ -3,15 +3,13 @@ package fr.tcd;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 
 public class DoTheThingService {
@@ -22,23 +20,20 @@ public class DoTheThingService {
 	public static String updatePhotoAsUnused = "MATCH (p:Photo{photoId:MY_ID})\n" + "SET p.used = false \n"
 			+ "RETURN p.photoId as pId";
 
-	@Deprecated
-	public static String selectPhotosHorizWithMostTags = "MATCH (p1:Photo{used:false,photoOrientation:'H'})-[:HAS_TAG]->(t:Tag)<-[:HAS_TAG]-(p2:Photo{used:false,photoOrientation:'H'})\n"
-			+ "WITH p1.photoId as p1Id, p2.photoId as p2Id, count(distinct t) as numTags\n"
-			+ "RETURN p1Id, p2Id, numTags ORDER BY numTags DESC LIMIT 1";
-
-	public static String selectPhotosVertiWithMostTagsFromID = "MATCH (p1:Photo{used:true,photoOrientation:'V',photoId:MY_ID})-[:HAS_TAG]->(t:Tag)<-[:HAS_TAG]-(p2:Photo{used:false,photoOrientation:'V'})\n"
-			+ "WITH p2.photoId as p2Id, count(t) as numTags\n" + "RETURN p2Id, numTags ORDER BY numTags DESC LIMIT 1";
-
-	public static String selectPhotosVertiWithMostTagsFromIDDifferent = "MATCH (p1:Photo{used:true,photoOrientation:'V',photoId:MY_ID})-[:HAS_TAG]->(t:Tag)<-[:HAS_TAG]-(p2:Photo{used:false,photoOrientation:'V'})\n"
-			+ "WITH p1.photoId as p1Id, p2.photoId as p2Id, count(t) as numTags\n" + "WHERE p2Id <> MY_OTHER_ID \n"
-			+ "RETURN p2Id, numTags ORDER BY numTags DESC LIMIT 1";
-
-	public List<String> doTheThing(GraphDatabaseService graphDb) {
+	public List<String> doTheThing(GraphDatabaseService graphDb) throws InterruptedException, ExecutionException {
 		DataAccesService dataAccesService = new DataAccesService();
 		List<String> results = new ArrayList<String>();
-		results.addAll(doTheThingWithHorizontals(graphDb, dataAccesService));
-		results.addAll(doTheThingWithVerticals(graphDb, dataAccesService));
+		// results.addAll(doTheThingWithHorizontals(graphDb, dataAccesService));
+		// results.addAll(doTheThingWithVerticals(graphDb, dataAccesService));
+
+		CompletableFuture<List<String>> horizontal = CompletableFuture
+				.supplyAsync(() -> doTheThingWithHorizontals(graphDb, dataAccesService));
+		CompletableFuture<List<String>> vertical = CompletableFuture
+				.supplyAsync(() -> doTheThingWithVerticals(graphDb, dataAccesService));
+
+		results.addAll(horizontal.get());
+		results.addAll(vertical.get());
+
 		return results;
 	}
 
@@ -53,21 +48,25 @@ public class DoTheThingService {
 			results.add("" + firstPhotoId);
 		}
 
+		int counter = 0;
+		List<Integer> photos = new ArrayList<Integer>();
 		while (stillDoingIt) {
 			Integer secondPhotoId = dataAccesService.getNextHorizontalPhotoId(graphDb, firstPhotoId);
 			if (secondPhotoId == null) {
 				stillDoingIt = false;
 			} else {
-				try (Transaction tx = graphDb.beginTx()) {
-					results.add("" + secondPhotoId);
-					Label photoLabel = Label.label("Photo");
-					Node secondPhotoNode = graphDb.findNode(photoLabel, "photoId", secondPhotoId);
-					secondPhotoNode.setProperty("used", true);
-					firstPhotoId = secondPhotoId;
-					tx.success();
-				}
+				results.add(""+secondPhotoId);
+				photos.add(firstPhotoId);
+				firstPhotoId = secondPhotoId;
+			}
+			counter++;
+			if (counter % 50 == 0) {
+				System.out.println("50 horizontal turns more :" + counter + ":" + Instant.now().toString());
+				dataAccesService.cleanPhotos(graphDb, photos);
+				photos = new ArrayList<Integer>();
 			}
 		}
+		System.out.println(results.size());
 		System.err.println("end doTheThingWithHorizontals at " + Instant.now().toString());
 		return results;
 	}
@@ -88,68 +87,34 @@ public class DoTheThingService {
 			firstSlidePhotoId1 = ids.getLeft();
 			firstSlidePhotoId2 = ids.getRight();
 			results.add("" + firstSlidePhotoId1 + " " + firstSlidePhotoId2);
-			try (Transaction tx = graphDb.beginTx()) {
-				Label photoLabel = Label.label("Photo");
-				Node firstPhotoNode = graphDb.findNode(photoLabel, "photoId", firstSlidePhotoId1);
-				firstPhotoNode.setProperty("used", true);
-				Node secondPhotoNode = graphDb.findNode(photoLabel, "photoId", firstSlidePhotoId2);
-				secondPhotoNode.setProperty("used", true);
-				tx.success();
-			}
 		}
 
+		int counter = 0;
+		List<Integer> photos = new ArrayList<Integer>();
 		while (stillDoingIt) {
-
-			String query1 = StringUtils
-					.replaceOnce(StringUtils.replaceOnce(DoTheThingService.selectPhotosVertiWithMostTagsFromID, "MY_ID",
-							"" + firstSlidePhotoId1), "MY_OTHER_ID", "" + firstSlidePhotoId2);
-			try (Transaction tx = graphDb.beginTx(); Result result1 = graphDb.execute(query1);) {
-				if (!result1.hasNext()) {
-					stillDoingIt = false;
-				}
-				if (result1.hasNext()) {
-					Map<String, Object> row = result1.next();
-					secondSlidePhotoId1 = (Integer) row.get("p2Id");
-				}
-
-				tx.success();
-
+			secondSlidePhotoId1 = dataAccesService.getNextVerticalPhotoId(graphDb, firstSlidePhotoId1);
+			if (secondSlidePhotoId1 == null) {
+				stillDoingIt = false;
+			} else {
+				secondSlidePhotoId2 = dataAccesService.getNextVerticalPhotoIdExceptOtherId(graphDb, firstSlidePhotoId2,
+						secondSlidePhotoId1);
+				
+				results.add("" + secondSlidePhotoId1 + " " + secondSlidePhotoId2);
+				photos.add(firstSlidePhotoId1);
+				photos.add(firstSlidePhotoId2);
+				firstSlidePhotoId1 = secondSlidePhotoId1;
+				firstSlidePhotoId2 = secondSlidePhotoId2;
+				secondSlidePhotoId1 = null;
+				secondSlidePhotoId2 = null;
 			}
-			String query2 = StringUtils
-					.replaceOnce(StringUtils.replaceOnce(DoTheThingService.selectPhotosVertiWithMostTagsFromIDDifferent,
-							"MY_ID", "" + firstSlidePhotoId2), "MY_OTHER_ID", "" + secondSlidePhotoId1);
-			try (Transaction tx = graphDb.beginTx(); Result result2 = graphDb.execute(query2);) {
-				if (!result2.hasNext()) {
-					stillDoingIt = false;
-				}
-				if (result2.hasNext()) {
-					Map<String, Object> row = result2.next();
-					secondSlidePhotoId2 = (Integer) row.get("p2Id");
-				}
-
-				tx.success();
-
-			}
-			try (Transaction tx = graphDb.beginTx()) {
-
-				if (secondSlidePhotoId1 != null && secondSlidePhotoId2 != null) {
-					Label photoLabel = Label.label("Photo");
-					Node firstPhotoNode = graphDb.findNode(photoLabel, "photoId", secondSlidePhotoId1);
-					firstPhotoNode.setProperty("used", true);
-					Node secondPhotoNode = graphDb.findNode(photoLabel, "photoId", secondSlidePhotoId2);
-					secondPhotoNode.setProperty("used", true);
-					String slide = secondSlidePhotoId1 + " " + secondSlidePhotoId2;
-					results.add(slide);
-					firstSlidePhotoId1 = secondSlidePhotoId1;
-					firstSlidePhotoId2 = secondSlidePhotoId2;
-					secondSlidePhotoId1 = null;
-					secondSlidePhotoId2 = null;
-				}
-
-				tx.success();
-
+			counter++;
+			if (counter % 50 == 0) {
+				System.out.println("50 vertical turns more :" + counter + ":" + Instant.now().toString());
+				dataAccesService.cleanPhotos(graphDb, photos);
+				photos = new ArrayList<Integer>();
 			}
 		}
+		System.out.println(results.size());
 		System.err.println("end doTheThingWithVerticals at " + Instant.now().toString());
 		return results;
 	}

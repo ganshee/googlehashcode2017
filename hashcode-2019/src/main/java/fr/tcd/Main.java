@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.io.FileUtils;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -36,7 +37,7 @@ public class Main {
 
 	public static String label = "MATCH (n) \n" + "RETURN distinct labels(n)";
 
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, InterruptedException, ExecutionException {
 
 		System.out.println("do the thing ... maybe");
 
@@ -53,7 +54,7 @@ public class Main {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
+
 		DoTheThingService doTheThingService = new DoTheThingService();
 		results.addAll(doTheThingService.doTheThing(graphDb));
 		nbResults.add("" + results.size());
@@ -66,23 +67,24 @@ public class Main {
 	}
 
 	private static void initDatabase(GraphDatabaseService graphDb) {
-		IndexDefinition indexDefinition;
 		try (Transaction tx = graphDb.beginTx()) {
 			Schema schema = graphDb.schema();
 			try {
 				schema.getIndexByName("TagIndex");
 			} catch (java.lang.IllegalArgumentException e) {
-				indexDefinition = schema.indexFor(Label.label("Tag")).on("tagname").withName("TagIndex").create();
+				schema.indexFor(Label.label("Tag")).on("tagname").withName("TagIndex").create();
 			}
 
 			tx.success();
 		}
+
 		try (Transaction tx = graphDb.beginTx()) {
 			Schema schema = graphDb.schema();
 			try {
 				schema.getIndexByName("PhotoIndex");
 			} catch (java.lang.IllegalArgumentException e) {
-				indexDefinition = schema.indexFor(Label.label("Photo")).on("photoId").withName("PhotoIndex").create();
+				schema.indexFor(Label.label("Photo")).on("photoId").withName("PhotoIndex").create();
+				schema.indexFor(Label.label("Photo")).on("used").withName("photoUsedIndex").create();
 			}
 			tx.success();
 		}
