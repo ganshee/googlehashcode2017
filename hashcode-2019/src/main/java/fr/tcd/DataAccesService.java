@@ -1,6 +1,7 @@
 package fr.tcd;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -143,6 +144,16 @@ public class DataAccesService {
 		try (Transaction tx = graphDb.beginTx(); Result result = graphDb.execute(queryP)) {
 			tx.success();
 		}
+
+	}
+
+	public void cleanPairPhotos(GraphDatabaseService graphDb, List<Pair<Integer,Integer>> photos) {
+		List<Integer> photosTmp = new ArrayList<Integer>();
+		for(Pair<Integer,Integer> pair : photos) {
+			photosTmp.add(pair.getLeft());
+			photosTmp.add(pair.getRight());
+		}
+		cleanPhotos(graphDb, photosTmp);
 
 	}
 

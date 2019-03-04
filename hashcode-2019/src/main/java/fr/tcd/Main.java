@@ -2,21 +2,17 @@ package fr.tcd;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.commons.io.FileUtils;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.graphdb.schema.Schema;
-import org.neo4j.kernel.impl.core.NodeProxy;
 
 public class Main {
 
@@ -56,10 +52,17 @@ public class Main {
 		}
 
 		DoTheThingService doTheThingService = new DoTheThingService();
-		results.addAll(doTheThingService.doTheThing(graphDb));
-		nbResults.add("" + results.size());
-		nbResults.addAll(results);
-		FileUtils.writeLines(new File(args[0] + ".out"), nbResults);
+		DoTheThingResult doTheThingResult = doTheThingService.doTheThing(graphDb);
+		// merge files
+
+		List<String> results = new ArrayList<String>();
+		results.add(""+doTheThingResult.getNumResult());
+		for(String filename : doTheThingResult.getFilenames()) {
+			List<String> lines = FileUtils.readLines(new File(filename),Charset.defaultCharset());
+			results.addAll(lines) ;
+			FileUtils.writeLines(new File(args[0] + ".out"), results);
+		}
+		
 
 		System.out.println("shut neo4j down ...  yeahhh we should");
 		graphDb.shutdown();

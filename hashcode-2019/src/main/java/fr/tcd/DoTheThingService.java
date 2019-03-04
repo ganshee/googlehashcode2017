@@ -1,16 +1,16 @@
 package fr.tcd;
 
+import java.io.File;
+import java.io.IOException;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Label;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Transaction;
 
 public class DoTheThingService {
 
@@ -20,103 +20,149 @@ public class DoTheThingService {
 	public static String updatePhotoAsUnused = "MATCH (p:Photo{photoId:MY_ID})\n" + "SET p.used = false \n"
 			+ "RETURN p.photoId as pId";
 
-	public List<String> doTheThing(GraphDatabaseService graphDb) throws InterruptedException, ExecutionException {
+	public DoTheThingResult doTheThing(GraphDatabaseService graphDb)
+			throws InterruptedException, ExecutionException, IOException {
 		DataAccesService dataAccesService = new DataAccesService();
-		List<String> results = new ArrayList<String>();
-		// results.addAll(doTheThingWithHorizontals(graphDb, dataAccesService));
-		// results.addAll(doTheThingWithVerticals(graphDb, dataAccesService));
+		DoTheThingResult result = new DoTheThingResult();
+		int step = 100;
 
-		CompletableFuture<List<String>> horizontal = CompletableFuture
-				.supplyAsync(() -> doTheThingWithHorizontals(graphDb, dataAccesService));
-		CompletableFuture<List<String>> vertical = CompletableFuture
-				.supplyAsync(() -> doTheThingWithVerticals(graphDb, dataAccesService));
+		DoTheThingResult horizontalResult = workOnHorizontals(graphDb, dataAccesService, step);
+		DoTheThingResult verticalResult = workOnVerticals(graphDb, dataAccesService, step);
 
-		results.addAll(horizontal.get());
-		results.addAll(vertical.get());
+		result.getFilenames().addAll(horizontalResult.getFilenames());
+		result.addToNumResult(horizontalResult.getNumResult());
 
-		return results;
+		result.getFilenames().addAll(verticalResult.getFilenames());
+		result.addToNumResult(verticalResult.getNumResult());
+
+		return result;
 	}
 
-	private List<String> doTheThingWithHorizontals(GraphDatabaseService graphDb, DataAccesService dataAccesService) {
+	private DoTheThingResult workOnHorizontals(GraphDatabaseService graphDb, DataAccesService dataAccesService,
+			int step) throws InterruptedException, ExecutionException, IOException {
+		DoTheThingResult result = new DoTheThingResult();
+		boolean finished = false;
+		while (!finished) {
+			CompletableFuture<HorizontalComputeState> horizontal = CompletableFuture
+					.supplyAsync(() -> doTheThingWithHorizontals(graphDb, dataAccesService, step));
+			HorizontalComputeState horizontalResult = horizontal.get();
+			result.addToNumResult(horizontalResult.getResults().size());
+			result.getFilenames().add(writeInFile(horizontal.get()));
+			if (horizontalResult.getResults().size() != step) {
+				finished = true;
+			}
+		}
+		return result;
+	}
+
+	private DoTheThingResult workOnVerticals(GraphDatabaseService graphDb, DataAccesService dataAccesService, int step)
+			throws InterruptedException, ExecutionException, IOException {
+		DoTheThingResult result = new DoTheThingResult();
+		boolean finished = false;
+		while (!finished) {
+			CompletableFuture<VerticalComputeState> vertical = CompletableFuture
+					.supplyAsync(() -> doTheThingWithVerticals(graphDb, dataAccesService, step));
+			VerticalComputeState verticalResult = vertical.get();
+			result.addToNumResult(verticalResult.getResults().size());
+			result.getFilenames().add(writeInFile(vertical.get()));
+			if (verticalResult.getResults().size() != step) {
+				finished = true;
+			}
+		}
+		return result;
+	}
+
+	private HorizontalComputeState doTheThingWithHorizontals(GraphDatabaseService graphDb,
+			DataAccesService dataAccesService, int size) {
 		System.err.println("start doTheThingWithHorizontals at " + Instant.now().toString());
-		List<String> results = new ArrayList<String>();
+		HorizontalComputeState state = new HorizontalComputeState();
 		boolean stillDoingIt = true;
+
 		Integer firstPhotoId = dataAccesService.getHorizontalPhotoId(graphDb);
 		if (firstPhotoId == null) {
 			stillDoingIt = false;
 		} else {
-			results.add("" + firstPhotoId);
+			state.setLastPhotoIdUsed(firstPhotoId);
+			state.getResults().add(firstPhotoId);
 		}
 
 		int counter = 0;
-		List<Integer> photos = new ArrayList<Integer>();
 		while (stillDoingIt) {
 			Integer secondPhotoId = dataAccesService.getNextHorizontalPhotoId(graphDb, firstPhotoId);
 			if (secondPhotoId == null) {
 				stillDoingIt = false;
 			} else {
-				results.add(""+secondPhotoId);
-				photos.add(firstPhotoId);
+				state.setLastPhotoIdUsed(secondPhotoId);
+				state.getResults().add(secondPhotoId);
 				firstPhotoId = secondPhotoId;
 			}
 			counter++;
-			if (counter % 50 == 0) {
-				System.out.println("50 horizontal turns more :" + counter + ":" + Instant.now().toString());
-				dataAccesService.cleanPhotos(graphDb, photos);
-				photos = new ArrayList<Integer>();
+			if (counter == size) {
+				System.out.println(size + " horizontal turns more" + Instant.now().toString());
+				dataAccesService.cleanPhotos(graphDb, state.getResults());
+				stillDoingIt = false;
 			}
 		}
-		System.out.println(results.size());
-		System.err.println("end doTheThingWithHorizontals at " + Instant.now().toString());
-		return results;
+		System.out.println(state.getResults().size());
+		System.err.println("end " + state.getResults() + " doTheThingWithHorizontals at " + Instant.now().toString());
+		return state;
 	}
 
-	private List<String> doTheThingWithVerticals(GraphDatabaseService graphDb, DataAccesService dataAccesService) {
+	private VerticalComputeState doTheThingWithVerticals(GraphDatabaseService graphDb,
+			DataAccesService dataAccesService, int size) {
 		System.err.println("start doTheThingWithVerticals at " + Instant.now().toString());
-		List<String> results = new ArrayList<String>();
+		VerticalComputeState verticalComputeState = new VerticalComputeState();
 		boolean stillDoingIt = true;
-		Pair<Integer, Integer> ids = dataAccesService.getVerticalPhotoId(graphDb);
-		Integer firstSlidePhotoId1 = null;
-		Integer firstSlidePhotoId2 = null;
+		Pair<Integer, Integer> firstIds = dataAccesService.getVerticalPhotoId(graphDb);
 		Integer secondSlidePhotoId1 = null;
 		Integer secondSlidePhotoId2 = null;
 
-		if (ids == null) {
+		if (firstIds == null) {
 			stillDoingIt = false;
 		} else {
-			firstSlidePhotoId1 = ids.getLeft();
-			firstSlidePhotoId2 = ids.getRight();
-			results.add("" + firstSlidePhotoId1 + " " + firstSlidePhotoId2);
+			verticalComputeState.setLastPhotoIdsUsed(firstIds);
+			verticalComputeState.getResults().add(firstIds);
 		}
 
 		int counter = 0;
-		List<Integer> photos = new ArrayList<Integer>();
 		while (stillDoingIt) {
-			secondSlidePhotoId1 = dataAccesService.getNextVerticalPhotoId(graphDb, firstSlidePhotoId1);
+			secondSlidePhotoId1 = dataAccesService.getNextVerticalPhotoId(graphDb, firstIds.getLeft());
 			if (secondSlidePhotoId1 == null) {
 				stillDoingIt = false;
 			} else {
-				secondSlidePhotoId2 = dataAccesService.getNextVerticalPhotoIdExceptOtherId(graphDb, firstSlidePhotoId2,
+				secondSlidePhotoId2 = dataAccesService.getNextVerticalPhotoIdExceptOtherId(graphDb, firstIds.getRight(),
 						secondSlidePhotoId1);
-				
-				results.add("" + secondSlidePhotoId1 + " " + secondSlidePhotoId2);
-				photos.add(firstSlidePhotoId1);
-				photos.add(firstSlidePhotoId2);
-				firstSlidePhotoId1 = secondSlidePhotoId1;
-				firstSlidePhotoId2 = secondSlidePhotoId2;
+
+				Pair<Integer, Integer> secondIds = new ImmutablePair<Integer, Integer>(secondSlidePhotoId1,
+						secondSlidePhotoId2);
+				verticalComputeState.setLastPhotoIdsUsed(secondIds);
+				verticalComputeState.getResults().add(secondIds);
+				firstIds = secondIds;
 				secondSlidePhotoId1 = null;
 				secondSlidePhotoId2 = null;
 			}
 			counter++;
-			if (counter % 50 == 0) {
+			if (counter == size) {
+				System.out.println(size + " vertical turns more" + Instant.now().toString());
+				dataAccesService.cleanPairPhotos(graphDb, verticalComputeState.getResults());
 				System.out.println("50 vertical turns more :" + counter + ":" + Instant.now().toString());
-				dataAccesService.cleanPhotos(graphDb, photos);
-				photos = new ArrayList<Integer>();
 			}
 		}
-		System.out.println(results.size());
+		System.out.println(verticalComputeState.getResults().size());
 		System.err.println("end doTheThingWithVerticals at " + Instant.now().toString());
-		return results;
+		return verticalComputeState;
+	}
+
+	private String writeInFile(HorizontalComputeState state) throws IOException {
+		String filename = "DTT-H-" + UUID.randomUUID().toString();
+		FileUtils.writeLines(new File(filename), state.getResults());
+		return filename;
+	}
+
+	private String writeInFile(VerticalComputeState state) throws IOException {
+		String filename = "DTT-V-" + UUID.randomUUID().toString();
+		FileUtils.writeLines(new File(filename), state.getResultLines());
+		return filename;
 	}
 
 }
